@@ -1,0 +1,23 @@
+{
+  "name": "@fynal/aikit",
+  "version": "1.0.0",
+  "description": "Fynal Development Kit",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "build": "tsc; cp src/index.d.ts build/",
+    "prepublishOnly": "pnpm version minor",
+    "publish": "npm publish --registry=https://registry.npmjs.org --access public"
+  },
+  "keywords": [],
+  "author": "liukehong@gmail.com",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.14.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.3"
+  },
+  "dependencies": {
+    "axios": "^1.7.2"
+  }
+}
