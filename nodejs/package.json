@@ -5,7 +5,7 @@
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
-    "build": "tsc; cp src/index.d.ts build/",
+    "build": "tsc; cp build/index.* node_modules/fynal/; echo \"declare module 'fynal';\" | cat - build/index.d.ts > temp && mv temp node_modules/fynal/index.d.ts",
     "prepublishOnly": "pnpm version minor",
     "publish": "npm publish --registry=https://registry.npmjs.org --access public"
   },
@@ -13,7 +13,7 @@
   "author": "liukehong@gmail.com",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^20.14.11",
+    "@types/node": "^20.14.12",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.3"
   },

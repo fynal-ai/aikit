@@ -1,38 +1,25 @@
-const axios = require("axios").default;
-interface AxiosOptions {
-  debug: boolean;
-  baseURL: string;
-  timeout: number;
-  headers: { [key: string]: any };
-  responseType: string;
-  xsrfCookieName: string;
-  xsrfHeaderName: string;
-  maxBodyLength: number;
-  maxRedirects: number;
-}
+import axios from "axios";
+import { AxiosRequestConfig } from "axios";
 
 const Fynal = {
   token: "",
+  debug: false,
   apiServer: "https://api.aiwork.localhost",
   sleep: async function (miliseconds: number) {
     await new Promise((resolve) => setTimeout(resolve, miliseconds));
   },
-  debug: function (flag: boolean) {
-    Fynal.axiosOptions.debug = flag;
+  setDebug: function (flag: boolean) {
+    Fynal.debug = flag;
   },
-  axiosOptions: {
-    debug: false,
-    baseURL: "",
-    timeout: 3000,
-    headers: {} as { [key: string]: any },
-    responseType: "json",
-    xsrfCookieName: "XSRF-TOKEN",
-    xsrfHeaderName: "X-XSRF-TOKEN",
-    maxBodyLength: 20000,
-    maxRedirects: 3,
-  } as AxiosOptions,
+  axiosOptions: {} as AxiosRequestConfig<Record<string, any>>,
+
+  init: () => {
+    Fynal.debug = false;
+    Fynal.axiosOptions.baseURL = process.env.APM_SERVER ?? Fynal.apiServer;
+  },
 
   setHeader: function (k: string, v: any) {
+    Fynal.axiosOptions.headers = Fynal.axiosOptions.headers ?? {};
     Fynal.axiosOptions.headers[k] = v;
   },
 
@@ -42,13 +29,14 @@ const Fynal = {
 
   post: async function (uri: string, payload: Record<string, any> = {}) {
     payload = payload ?? {};
-    if (Fynal.axiosOptions.debug) console.log("post", uri, payload);
+    if (Fynal.debug) console.log("post", uri, payload);
     let ret = await Fynal._post(uri, payload);
     return ret?.data;
   },
   //return full response body.
   _post: async function (endpoint: string, payload: Record<string, any>) {
     try {
+      console.log("Fynal._post", endpoint, payload);
       let res = await axios.post(endpoint, payload, Fynal.axiosOptions);
       return res;
     } catch (err: any) {
@@ -175,15 +163,17 @@ const Fynal = {
         tmpOption,
       )
       .then((response: any) => {
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        $(".tempLink").remove();
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", `${tpl_id}.xml`);
-        link.setAttribute("class", "tempLink");
-        document.body.appendChild(link);
-        //点击这个临时连接实现内容下载
-        link.click();
+        return response.data;
+        // How to download the tempalte automatically in browser
+        // const url = window.URL.createObjectURL(new Blob([response.data]));
+        // $(".tempLink").remove();
+        // const link = document.createElement("a");
+        // link.href = url;
+        // link.setAttribute("download", `${tpl_id}.xml`);
+        // link.setAttribute("class", "tempLink");
+        // document.body.appendChild(link);
+        // //点击这个临时连接实现内容下载
+        // link.click();
       });
   },
 
@@ -391,11 +381,11 @@ const Fynal = {
     return ret;
   },
 
-  revoke: async function (wfid: string, todoid: string) {
+  revoke: async function (wfid: string, todoid: string, comment: string = "") {
     let ret = await Fynal.post("/work/revoke", {
-      tenant: Fynal.tenant,
       wfid: wfid,
       todoid: todoid,
+      comment: comment,
     });
     return ret;
   },
@@ -415,7 +405,7 @@ const Fynal = {
     return ret;
   },
 
-  getWorkInfo: async function (wfid: string, todoid: string) {
+  getWorkInfo: async function (todoid: string) {
     let ret = await Fynal.post("/work/info", {
       todoid: todoid,
     });
@@ -428,11 +418,13 @@ const Fynal = {
     let ret = await Fynal.post("/team/upload", payload);
     return ret;
   },
+
   setRole: async function (teamid: string, role: string, members: string[]) {
     let payload = { teamid: teamid, role: role, members: members };
     let ret = await Fynal.post("/team/role/set", payload);
     return ret;
   },
+
   addRoleMembers: async function (
     teamid: string,
     role: string,
@@ -442,6 +434,7 @@ const Fynal = {
     let ret = await Fynal.post("/team/role/member/add", payload);
     return ret;
   },
+
   deleteRoleMembers: async function (
     teamid: string,
     role: string,
@@ -451,13 +444,14 @@ const Fynal = {
     let ret = await Fynal.post("/team/role/member/delete", payload);
     return ret;
   },
+
   copyRole: async function (teamid: string, role: string, newrole: string) {
     let payload = { teamid: teamid, role: role, newrole: newrole };
     let ret = await Fynal.post("/team/role/copy", payload);
     return ret;
   },
+
   importTeamCSV: async function (teamid: string, fileObj: any) {
-    if (this.isEmpty(teamid)) return;
     var formData = new FormData();
     formData.append("teamid", teamid);
     formData.append("file", fileObj, fileObj.name);
@@ -482,8 +476,7 @@ const Fynal = {
 
   getTeamList: async function (payload: Record<string, any>) {
     payload = payload ? payload : { limit: 1000 };
-    ret = await Fynal.post("/team/search", payload);
-    return ret;
+    return await Fynal.post("/team/search", payload);
   },
 
   getCallbackPoints: async function (cbpFilter: Record<string, any>) {
@@ -538,9 +531,6 @@ const Fynal = {
       password: password,
     };
     let response = await Fynal.post(endpoint, payload);
-    //console.error("=============== Regsiter Response =====");
-    //console.error(response);
-    //console.error("=============== Regsiter Response =====");
     if (response?.sessionToken) {
       Fynal.setHeader("authorization", response.sessionToken);
     }
@@ -669,7 +659,7 @@ const Fynal = {
     });
     return ret;
   },
-  orgClearJoinApplications: async function (joincode: string) {
+  orgClearJoinApplications: async function () {
     let ret = await Fynal.post("/tnt/join/clear", {});
     return ret;
   },
@@ -728,6 +718,7 @@ const Fynal = {
     return ret;
   },
   importFromExcel: async function (param: any) {
+    Fynal.axiosOptions.headers = Fynal.axiosOptions.headers ?? {};
     const headers = {
       authorization: Fynal.axiosOptions.headers.authorization,
       ...param.getHeaders(),
@@ -746,5 +737,6 @@ const Fynal = {
   },
 };
 
+Fynal.axiosOptions.baseURL = Fynal.apiServer;
+
 export default Fynal;
-//TODO: simple usage demo: from register, login
