@@ -5,7 +5,7 @@
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
-    "build": "tsc; cp build/index.* node_modules/fynal/; echo \"declare module 'fynal';\" | cat - build/index.d.ts > temp && mv temp node_modules/fynal/index.d.ts",
+    "build": "tsc; mkdir -p node_modules/fynal; cp build/index.* node_modules/fynal/; echo \"declare module 'fynal';\" | cat - build/index.d.ts > temp && mv temp node_modules/fynal/index.d.ts; tsc -p ./tsconfig_examples.json",
     "prepublishOnly": "pnpm version minor",
     "publish": "npm publish --registry=https://registry.npmjs.org --access public"
   },
