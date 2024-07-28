@@ -1,6 +1,6 @@
 import Fynal from "fynal";
 
-Fynal.register("fynal_a", "John Doe", "FynalAI@2024")
+Fynal.login("user1", "John Doe")
   .then((result: any) => {
     console.log(result);
   })
