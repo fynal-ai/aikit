@@ -1,0 +1,13 @@
+<div class="template" id="test_1_step">
+  <div class="node START" id="start">
+    <p>START</p>
+  </div>
+  <div class="node ACTION" id="action1">
+    <p>Action1</p>
+  </div>
+  <div class="node END" id="end">
+    <p>END</p>
+  </div>
+  <div class="link" from="start" to="action1"></div>
+  <div class="link" from="action1" to="end"></div>
+</div>

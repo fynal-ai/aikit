@@ -18,6 +18,7 @@
     "typescript": "^5.5.3"
   },
   "dependencies": {
+    "@hapi/code": "^9.0.3",
     "axios": "^1.7.2"
   }
 }

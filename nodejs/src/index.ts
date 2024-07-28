@@ -1,74 +1,101 @@
 import axios from "axios";
 import { AxiosRequestConfig } from "axios";
 
-const Fynal = {
-  token: "",
-  debug: false,
-  apiServer: "https://api.aiwork.localhost",
-  sleep: async function (miliseconds: number) {
-    await new Promise((resolve) => setTimeout(resolve, miliseconds));
-  },
-  setDebug: function (flag: boolean) {
-    Fynal.debug = flag;
-  },
-  axiosOptions: {} as AxiosRequestConfig<Record<string, any>>,
+class Client {
+  debug: boolean;
+  token: string;
+  logLevel: number;
+  axiosOptions: AxiosRequestConfig<Record<string, any>>;
 
-  init: () => {
-    Fynal.debug = false;
-    Fynal.axiosOptions.baseURL = process.env.APM_SERVER ?? Fynal.apiServer;
-  },
+  constructor() {
+    this.token = "";
+    this.logLevel = 0;
+    this.debug = false;
+    this.axiosOptions = {};
+  }
+  async sleep(miliseconds: number) {
+    await new Promise((resolve: any) => setTimeout(resolve, miliseconds));
+  }
+  setDebug(flag: boolean) {
+    this.debug = flag;
+  }
+  setLogLevel(level: number) {
+    this.logLevel = level;
+  }
+  setHeader(k: string, v: any) {
+    this.axiosOptions.headers = this.axiosOptions.headers ?? {};
+    this.axiosOptions.headers[k] = v;
+  }
 
-  setHeader: function (k: string, v: any) {
-    Fynal.axiosOptions.headers = Fynal.axiosOptions.headers ?? {};
-    Fynal.axiosOptions.headers[k] = v;
-  },
+  setHttpTimeout(v: number) {
+    this.axiosOptions.timeout = v;
+  }
 
-  setHttpTimeout: function (v: number) {
-    Fynal.axiosOptions.timeout = v;
-  },
-
-  post: async function (uri: string, payload: Record<string, any> = {}) {
+  async post(uri: string, payload: Record<string, any> = {}) {
     payload = payload ?? {};
-    if (Fynal.debug) console.log("post", uri, payload);
-    let ret = await Fynal._post(uri, payload);
+    if (this.debug) console.log("post", uri, payload);
+    let ret = await this._post(uri, payload);
     return ret?.data;
-  },
+  }
   //return full response body.
-  _post: async function (endpoint: string, payload: Record<string, any>) {
+  async _post(endpoint: string, payload: Record<string, any>) {
     try {
-      console.log("Fynal._post", endpoint, payload);
-      let res = await axios.post(endpoint, payload, Fynal.axiosOptions);
+      switch (this.logLevel) {
+        case 1:
+          console.log("this.post", endpoint);
+          break;
+        case 2:
+        case 3:
+          console.log("this.post", endpoint, payload);
+      }
+      let res = await axios.post(endpoint, payload, this.axiosOptions);
+      if (this.logLevel === 3) {
+        console.log("response: ", res.data);
+      }
       return res;
     } catch (err: any) {
       if (err.response) return err.response;
       else return { data: { error: err.message } };
     }
-  },
-  _download: async function (uri: string, payload: Record<string, any>) {
-    await axios.post(uri, payload, Fynal.axiosOptions);
-  },
-  get: async function (uri: string) {
-    let ret = await Fynal._get(uri);
+  }
+  async _download(uri: string, payload: Record<string, any>) {
+    await axios.post(uri, payload, this.axiosOptions);
+  }
+  async get(uri: string) {
+    let ret = await this._get(uri);
     if (ret && ret.data) return ret.data;
     else {
       console.log(uri);
       console.log(ret);
     }
-  },
+  }
 
-  _get: async function (uri: string) {
+  async _get(uri: string) {
     try {
-      let ret = await axios.get(uri, Fynal.axiosOptions);
+      let ret = await axios.get(uri, this.axiosOptions);
       return ret;
     } catch (error: any) {
       return error.response;
     }
-  },
-  setServer: function (url: string) {
-    Fynal.axiosOptions.baseURL = url;
-  },
+  }
+  setServer(url: string) {
+    this.axiosOptions.baseURL = url;
+  }
+}
 
-  getWorklist: async function (doer: string, arg1: any, arg2: any) {
+class FynalClass extends Client {
+  constructor() {
+    process.env.EMP_SERVER ??
+      (console.log("EMP_SERVER is not set"), process.exit(1));
+    super();
+    this.axiosOptions.baseURL = process.env.EMP_SERVER;
+  }
+
+  hello() {
+    return "Hello, this is Fynal, the AI agent that collaborates with other agents and people";
+  }
+
+  async getWorklist(doer: string, arg1?: any, arg2?: any) {
     let filter = {};
     let repeatTimesUntilGotOne = 1;
     if (arg1 && !arg2) {
@@ -90,7 +117,7 @@ const Fynal = {
     let res;
     filter = filter ? filter : {};
     for (let i = 0; i < repeatTimesUntilGotOne; i++) {
-      res = await Fynal.post("/work/search", {
+      res = await this.post("/work/search", {
         doer: doer,
         ...filter,
       });
@@ -99,33 +126,33 @@ const Fynal = {
       }
       if (res.total > 0) break;
       else if (repeatTimesUntilGotOne > 1) {
-        await Fynal.sleep(1000);
+        await this.sleep(1000);
       }
     }
     return res;
-  },
+  }
 
-  createTemplate: async function (tplid: string, desc = "") {
-    let ret = await Fynal.post("/template/create", { tplid: tplid, desc });
+  async createTemplate(tplid: string, desc = "") {
+    let ret = await this.post("/template/create", { tplid: tplid, desc });
     return ret;
-  },
+  }
 
-  putTemplate: async function (tpl_data: string, tplid: string, desc = "") {
+  async putTemplate(tpl_data: string, tplid: string, desc = "") {
     if (!tplid) throw new Error("Tplid must be provided");
-    let ret = await Fynal.post("/template/put", {
+    let ret = await this.post("/template/put", {
       doc: tpl_data,
       tplid,
       forceupdate: true,
       desc,
     });
     return ret;
-  },
+  }
 
-  importTemplateXML: async function (tplid: string, fileObj: any) {
+  async importTemplateXML(tplid: string, fileObj: any) {
     var formData = new FormData();
     formData.append("tplid", tplid);
     formData.append("file", fileObj, fileObj.name);
-    let option = Fynal.axiosOptions;
+    let option = this.axiosOptions;
     let token = this.getSessionToken();
     if (token === null) {
       console.error("No session token in localStorage");
@@ -137,22 +164,22 @@ const Fynal = {
     };
     let res = await axios.post("/template/import", formData, option);
     return res;
-  },
+  }
 
-  readTemplate: async function (tpl_id: string) {
-    let ret = await Fynal.post("/template/read", {
+  async readTemplate(tpl_id: string) {
+    let ret = await this.post("/template/read", {
       tplid: tpl_id,
     });
     return ret;
-  },
-  readWorkflow: async function (wfid: string) {
-    let ret = await Fynal.post("/workflow/read", {
+  }
+  async readWorkflow(wfid: string) {
+    let ret = await this.post("/workflow/read", {
       wfid: wfid,
     });
     return ret;
-  },
-  exportTemplate: async function (tpl_id: string) {
-    let tmpOption = Fynal.axiosOptions;
+  }
+  async exportTemplate(tpl_id: string) {
+    let tmpOption = this.axiosOptions;
     tmpOption.responseType = "blob";
     axios
       .post(
@@ -175,88 +202,83 @@ const Fynal = {
         // //点击这个临时连接实现内容下载
         // link.click();
       });
-  },
+  }
 
-  listTemplate: async function () {
-    let ret = await Fynal.get("/template/list");
+  async listTemplate() {
+    let ret = await this.get("/template/list");
     return ret;
-  },
+  }
 
   //Rename with internal _id
-  renameTemplateWithIid: async function (_id: string, tplid: string) {
-    let ret = await Fynal.post("/template/renamewithiid", {
+  async renameTemplateWithIid(_id: string, tplid: string) {
+    let ret = await this.post("/template/renamewithiid", {
       _id: _id,
       tplid: tplid,
     });
     return ret;
-  },
+  }
 
-  renameTemplate: async function (fromid: string, tplid: string) {
-    let ret = await Fynal.post("/template/rename", {
+  async renameTemplate(fromid: string, tplid: string) {
+    let ret = await this.post("/template/rename", {
       fromid: fromid,
       tplid: tplid,
     });
     return ret;
-  },
+  }
 
-  deleteTemplate: async function (_id: string) {
-    let ret = await Fynal.post("/template/delete", {
+  async deleteTemplate(_id: string) {
+    let ret = await this.post("/template/delete", {
       _id: _id,
     });
     return ret;
-  },
+  }
 
-  deleteTemplateByTplid: async function (tplid: string) {
-    let ret = await Fynal.post("/template/delete/by/tplid", {
+  async deleteTemplateByTplid(tplid: string) {
+    let ret = await this.post("/template/delete/by/tplid", {
       tplid: tplid,
     });
     return ret;
-  },
+  }
 
-  makeCopyOfTemplate: async function (_id: string) {
-    let ret = await Fynal.post("/template/makecopy", {
+  async makeCopyOfTemplate(_id: string) {
+    let ret = await this.post("/template/makecopy", {
       _id: _id,
     });
     return ret;
-  },
+  }
 
-  copyTemplateTo: async function (fromid: string, tplid: string) {
-    let ret = await Fynal.post("/template/copyto", {
+  async copyTemplateTo(fromid: string, tplid: string) {
+    let ret = await this.post("/template/copyto", {
       fromid: fromid,
       tplid: tplid,
     });
     return ret;
-  },
-  getPbo: async function (wfid: string, pbotype = "text") {
-    let ret = await Fynal.post("/workflow/get/pbo", {
+  }
+  async getPbo(wfid: string, pbotype = "text") {
+    let ret = await this.post("/workflow/get/pbo", {
       wfid: wfid,
       pbotype: pbotype,
     });
     return ret;
-  },
-  setPbo: async function (
-    wfid: string,
-    pbo: string,
-    pbotype: string,
-    stepid: string,
-  ) {
-    let ret = await Fynal.post("/workflow/set/pbo", {
+  }
+  async setPbo(wfid: string, pbo: string, pbotype: string, stepid: string) {
+    let ret = await this.post("/workflow/set/pbo", {
       wfid: wfid,
       pbo: pbo,
       pbotype: pbotype,
       stepid: stepid,
     });
     return ret;
-  },
+  }
 
-  startWorkflow: async function (
+  async startWorkflow(
     tplid: string,
-    wfid: string,
+    wfid: string = "",
     teamid = "",
     pbo = "",
     kvars = {},
   ) {
-    let ret = await Fynal.post("/workflow/start", {
+    let ret = await this.post("/workflow/start", {
       tplid: tplid,
       wfid: wfid,
       teamid: teamid,
@@ -264,84 +286,79 @@ const Fynal = {
       kvars: kvars,
     });
     return ret;
-  },
+  }
 
-  opWorkflow: async function (wfid: string, op: string) {
-    return await Fynal.post("/workflow/op", { wfid, op });
-  },
+  async opWorkflow(wfid: string, op: string) {
+    return await this.post("/workflow/op", { wfid, op });
+  }
 
-  pauseWorkflow: async function (wfid: string) {
-    let ret = await Fynal.post("/workflow/pause", {
+  async pauseWorkflow(wfid: string) {
+    let ret = await this.post("/workflow/pause", {
       wfid: wfid,
     });
     return ret;
-  },
+  }
 
-  resumeWorkflow: async function (wfid: string) {
-    let ret = await Fynal.post("/workflow/resume", {
+  async resumeWorkflow(wfid: string) {
+    let ret = await this.post("/workflow/resume", {
       wfid: wfid,
     });
     return ret;
-  },
-  stopWorkflow: async function (wfid: string) {
-    let ret = await Fynal.post("/workflow/stop", {
+  }
+  async stopWorkflow(wfid: string) {
+    let ret = await this.post("/workflow/stop", {
       wfid: wfid,
     });
     return ret;
-  },
+  }
 
-  workflowSearch: async function (filter: Record<string, any>) {
-    let ret = await Fynal.post("/workflow/search", filter);
+  async workflowSearch(filter: Record<string, any>) {
+    let ret = await this.post("/workflow/search", filter);
     return ret;
-  },
+  }
 
-  workflowGetLatest: async function (filter: Record<string, any>) {
-    let ret = await Fynal.post("/workflow/latest", {
+  async workflowGetLatest(filter: Record<string, any>) {
+    let ret = await this.post("/workflow/latest", {
       filter: filter,
     });
     return ret;
-  },
+  }
 
-  destroyWorkflow: async function (wfid: string) {
-    let ret = await Fynal.post("/workflow/destroy", { wfid: wfid });
+  async destroyWorkflow(wfid: string) {
+    let ret = await this.post("/workflow/destroy", { wfid: wfid });
     return ret;
-  },
-  destroyMultiWorkflows: async function (wfids: string[]) {
-    let ret = await Fynal.post("/workflow/destroy/multi", { wfids });
+  }
+  async destroyMultiWorkflows(wfids: string[]) {
+    let ret = await this.post("/workflow/destroy/multi", { wfids });
     return ret;
-  },
-  destroyWorkflowByWfTitle: async function (wftitle: string) {
-    let ret = await Fynal.post("/workflow/destroy/by/title", { wftitle });
+  }
+  async destroyWorkflowByWfTitle(wftitle: string) {
+    let ret = await this.post("/workflow/destroy/by/title", { wftitle });
     return ret;
-  },
-  destroyWorkflowByTplid: async function (tplid: string) {
-    let ret = await Fynal.post("/workflow/destroy/by/tplid", { tplid });
+  }
+  async destroyWorkflowByTplid(tplid: string) {
+    let ret = await this.post("/workflow/destroy/by/tplid", { tplid });
     return ret;
-  },
+  }
 
-  doWork: async function (
-    doer: string,
-    todoid: string,
-    kvars = {},
-    route = "DEFAULT",
-  ) {
-    let ret = await Fynal.post("/work/do", {
+  async doWork(doer: string, todoid: string, kvars = {}, route = "DEFAULT") {
+    let ret = await this.post("/work/do", {
       doer: doer,
       todoid: todoid,
       route: route,
       kvars: kvars,
     });
     return ret;
-  },
+  }
   //根据wfid， 和nodeid，执行wfid里的一个nodeid的todo
-  doWorkByNode: async function (
+  async doWorkByNode(
     doer: string,
     wfid: string,
     nodeid: string,
     kvars = {},
     route = "DEFAULT",
   ) {
-    let ret = await Fynal.post("/work/do/bynode", {
+    let ret = await this.post("/work/do/bynode", {
       doer: doer,
       wfid: wfid,
       nodeid: nodeid,
@@ -349,10 +366,10 @@ const Fynal = {
       kvars: kvars,
     });
     return ret;
-  },
+  }
 
-  getKVars: async function (wfid: string, workid: string) {
-    let ret = await Fynal.post(
+  async getKVars(wfid: string, workid: string) {
+    let ret = await this.post(
       "/workflow/kvars",
       workid
         ? {
@@ -364,98 +381,85 @@ const Fynal = {
           },
     );
     return ret;
-  },
+  }
 
-  getStatus: async function (wfid: string, todoid: string) {
+  async getStatus(wfid: string, todoid: string | undefined = undefined) {
     let ret = "ST_UNKNOWN";
     if (todoid)
-      ret = await Fynal.post("/work/status", {
+      ret = await this.post("/work/status", {
         wfid: wfid,
         todoid: todoid,
       });
     else
-      ret = await Fynal.post("/workflow/status", {
+      ret = await this.post("/workflow/status", {
         wfid: wfid,
       });
 
     return ret;
-  },
+  }
 
-  revoke: async function (wfid: string, todoid: string, comment: string = "") {
-    let ret = await Fynal.post("/work/revoke", {
+  async revoke(wfid: string, todoid: string, comment: string = "") {
+    let ret = await this.post("/work/revoke", {
       wfid: wfid,
       todoid: todoid,
       comment: comment,
     });
     return ret;
-  },
+  }
 
-  sendback: async function (
-    doer: string,
-    wfid: string,
-    todoid: string,
-    kvars = {},
-  ) {
-    let ret = await Fynal.post("/work/sendback", {
+  async sendback(doer: string, wfid: string, todoid: string, kvars = {}) {
+    let ret = await this.post("/work/sendback", {
       doer: doer,
       wfid: wfid,
       todoid: todoid,
       kvars,
     });
     return ret;
-  },
+  }
 
-  getWorkInfo: async function (todoid: string) {
-    let ret = await Fynal.post("/work/info", {
+  async getWorkInfo(todoid: string) {
+    let ret = await this.post("/work/info", {
       todoid: todoid,
     });
 
     return ret;
-  },
+  }
 
-  uploadTeam: async function (name: string, tmap: string) {
+  async uploadTeam(name: string, tmap: string) {
     let payload = { teamid: name, tmap: tmap };
-    let ret = await Fynal.post("/team/upload", payload);
+    let ret = await this.post("/team/upload", payload);
     return ret;
-  },
+  }
 
-  setRole: async function (teamid: string, role: string, members: string[]) {
+  async setRole(teamid: string, role: string, members: string[]) {
     let payload = { teamid: teamid, role: role, members: members };
-    let ret = await Fynal.post("/team/role/set", payload);
+    let ret = await this.post("/team/role/set", payload);
     return ret;
-  },
+  }
 
-  addRoleMembers: async function (
-    teamid: string,
-    role: string,
-    members: string[],
-  ) {
+  async addRoleMembers(teamid: string, role: string, members: string[]) {
     let payload = { teamid: teamid, role: role, members: members };
-    let ret = await Fynal.post("/team/role/member/add", payload);
+    let ret = await this.post("/team/role/member/add", payload);
     return ret;
-  },
+  }
 
-  deleteRoleMembers: async function (
-    teamid: string,
-    role: string,
-    members: string[],
-  ) {
+  async deleteRoleMembers(teamid: string, role: string, members: string[]) {
     let payload = { teamid: teamid, role: role, eids: members };
-    let ret = await Fynal.post("/team/role/member/delete", payload);
+    let ret = await this.post("/team/role/member/delete", payload);
     return ret;
-  },
+  }
 
-  copyRole: async function (teamid: string, role: string, newrole: string) {
+  async copyRole(teamid: string, role: string, newrole: string) {
     let payload = { teamid: teamid, role: role, newrole: newrole };
-    let ret = await Fynal.post("/team/role/copy", payload);
+    let ret = await this.post("/team/role/copy", payload);
     return ret;
-  },
+  }
 
-  importTeamCSV: async function (teamid: string, fileObj: any) {
+  async importTeamCSV(teamid: string, fileObj: any) {
     var formData = new FormData();
     formData.append("teamid", teamid);
     formData.append("file", fileObj, fileObj.name);
-    let option = Fynal.axiosOptions;
+    let option = this.axiosOptions;
     let token = this.getSessionToken();
     if (token === null) {
       console.error("No session token in localStorage");
@@ -467,34 +471,29 @@ const Fynal = {
     };
     let res = await axios.post("/team/import", formData, option);
     return res;
-  },
+  }
 
-  getTeamFullInfo: async function (teamid: string) {
-    let ret = await Fynal.get(`/team/fullinfo/${teamid}`);
+  async getTeamFullInfo(teamid: string) {
+    let ret = await this.get(`/team/fullinfo/${teamid}`);
     return ret;
-  },
+  }
 
-  getTeamList: async function (payload: Record<string, any>) {
+  async getTeamList(payload: Record<string, any>) {
     payload = payload ? payload : { limit: 1000 };
-    return await Fynal.post("/team/search", payload);
-  },
+    return await this.post("/team/search", payload);
+  }
 
-  getCallbackPoints: async function (cbpFilter: Record<string, any>) {
-    let ret = await Fynal.post("/workflow/cbps", cbpFilter);
+  async getCallbackPoints(cbpFilter: Record<string, any>) {
+    let ret = await this.post("/workflow/cbps", cbpFilter);
     return ret;
-  },
+  }
 
-  getLatestCallbackPoint: async function (cbpFilter: Record<string, any>) {
-    let ret = await Fynal.post("/workflow/cbps/latest", cbpFilter);
+  async getLatestCallbackPoint(cbpFilter: Record<string, any>) {
+    let ret = await this.post("/workflow/cbps/latest", cbpFilter);
     return ret;
-  },
+  }
 
-  doCallback: async function (
-    cbpid: string,
-    decision: string,
-    kvars: any,
-    atts: any,
-  ) {
+  async doCallback(cbpid: string, decision: string, kvars: any, atts: any) {
     let payload: any = { cbpid, decision };
     if (kvars) {
       payload.kvars = kvars;
@@ -502,54 +501,50 @@ const Fynal = {
         payload.atts = atts;
       }
     }
-    let ret = await Fynal.post("/workflow/docallback", payload);
+    let ret = await this.post("/workflow/docallback", payload);
     return ret;
-  },
+  }
 
-  deleteTeam: async function (name: string) {
+  async deleteTeam(name: string) {
     let payload = { teamid: name };
-    let ret = await Fynal.post("/team/delete", payload);
+    let ret = await this.post("/team/delete", payload);
     return ret;
-  },
+  }
 
-  __checkError: function (ret: any) {
+  __checkError(ret: any) {
     if (ret.errors) {
       throw new Error(ret.errors);
     }
-  },
+  }
 
-  register: async function (
-    account: string,
-    username: string,
-    password: string,
-  ) {
-    Fynal.setHeader("Content-type", "application/json");
+  async register(account: string, username: string, password: string) {
+    this.setHeader("Content-type", "application/json");
     let endpoint = "/account/register";
     let payload = {
       account: account,
       username: username,
       password: password,
     };
-    let response = await Fynal.post(endpoint, payload);
+    let response = await this.post(endpoint, payload);
     if (response?.sessionToken) {
-      Fynal.setHeader("authorization", response.sessionToken);
+      this.setHeader("authorization", response.sessionToken);
     }
     return response;
-  },
-  verify: async function (token: string) {
-    let response = await Fynal.post("/account/verifyEmail", { token });
+  }
+  async verify(token: string) {
+    let response = await this.post("/account/verifyEmail", { token });
     return response;
-  },
-  removeUser: async function (account: string, site_passwd: string) {
-    let ret = await Fynal.post("/admin/remove/account", {
+  }
+  async removeUser(account: string, site_passwd: string) {
+    let ret = await this.post("/admin/remove/account", {
       account: account,
       password: site_passwd,
     });
 
     return ret;
-  },
+  }
 
-  login: async function (account: any, password: string) {
+  async login(account: any, password: string) {
     let theAccount;
     let thePassword;
     if (typeof account === "string") {
@@ -572,35 +567,35 @@ const Fynal = {
       }
     }
 
-    Fynal.setHeader("Content-type", "application/json");
-    let response = await Fynal.post("/account/login", {
+    this.setHeader("Content-type", "application/json");
+    let response = await this.post("/account/login", {
       account: theAccount,
       password: thePassword,
     });
     if (response.sessionToken) {
-      Fynal.setHeader("authorization", response.sessionToken);
+      this.setHeader("authorization", response.sessionToken);
     }
     return response;
-  },
+  }
 
-  setUserName: async function (username: string) {
-    Fynal.setHeader("Content-type", "application/json");
-    let response = await Fynal.post("/account/set/username", {
+  async setUserName(username: string) {
+    this.setHeader("Content-type", "application/json");
+    let response = await this.post("/account/set/username", {
       username,
     });
     return response;
-  },
+  }
 
-  setUserPassword: async function (oldpassword: string, password: string) {
-    Fynal.setHeader("Content-type", "application/json");
-    let response = await Fynal.post("/account/set/password", {
+  async setUserPassword(oldpassword: string, password: string) {
+    this.setHeader("Content-type", "application/json");
+    let response = await this.post("/account/set/password", {
       oldpassword,
       password,
     });
     return response;
-  },
+  }
 
-  getSessionToken: function () {
+  getSessionToken() {
     if (localStorage) {
       let token = localStorage.getItem("sessionToken");
       if (token) {
@@ -611,132 +606,168 @@ const Fynal = {
     } else {
       return null;
     }
-  },
-  setSessionToken: function (token: string) {
+  }
+  setSessionToken(token: string) {
     if (token) {
-      //console.log("Fynal authorization token", token);
-      Fynal.setHeader("authorization", `Bearer ${token}`);
+      //console.log("this.authorization token", token);
+      this.setHeader("authorization", `Bearer ${token}`);
     } else {
       if (localStorage) {
         let token = localStorage.getItem("sessionToken");
         if (token) {
-          Fynal.setHeader("authorization", `Bearer ${token}`);
-          //console.log("Fynal authorization token", token);
+          this.setHeader("authorization", `Bearer ${token}`);
+          //console.log("this.authorization token", token);
         }
       }
     }
-  },
+  }
 
-  profile: async function () {
-    let response = await Fynal.get("/account/profile/me");
+  async profile() {
+    let response = await this.get("/account/profile/me");
     return response;
-  },
+  }
 
-  logout: async function (token: string) {
+  async logout(token: string) {
     if (token) {
-      Fynal.setHeader("authorization", token);
+      this.setHeader("authorization", token);
     }
-    let response = await Fynal.post("/account/logout", {});
+    let response = await this.post("/account/logout", {});
     return response;
-  },
+  }
 
-  adminSetVerified: async function (userids: any) {
-    let ret = await Fynal.post("/admin/set/emailVerified", { userids });
+  async adminSetVerified(userids: any) {
+    let ret = await this.post("/admin/set/emailVerified", { userids });
     return ret;
-  },
-  mySetVerified: async function () {
-    let ret = await Fynal.post("/my/set/emailVerified");
+  }
+  async mySetVerified() {
+    let ret = await this.post("/my/set/emailVerified");
     return ret;
-  },
+  }
 
-  orgJoinCodeNew: async function () {
-    let ret = await Fynal.post("/tnt/joincode/new");
+  async orgJoinCodeNew() {
+    let ret = await this.post("/tnt/joincode/new");
     return ret;
-  },
-  orgJoin: async function (joincode: string) {
-    let ret = await Fynal.post("/tnt/join", {
+  }
+  async orgJoin(joincode: string) {
+    let ret = await this.post("/tnt/join", {
       joincode: joincode,
     });
     return ret;
-  },
-  orgClearJoinApplications: async function () {
-    let ret = await Fynal.post("/tnt/join/clear", {});
+  }
+  async orgClearJoinApplications() {
+    let ret = await this.post("/tnt/join/clear", {});
     return ret;
-  },
-  orgSetRegfree: async function (regfree: boolean) {
-    let ret = await Fynal.post("/tnt/set/regfree", { regfree: regfree });
+  }
+  async orgSetRegfree(regfree: boolean) {
+    let ret = await this.post("/tnt/set/regfree", { regfree: regfree });
     return ret;
-  },
-  orgMyOrg: async function () {
-    let ret = await Fynal.post("/tnt/my/org");
+  }
+  async orgMyOrg() {
+    let ret = await this.post("/tnt/my/org");
     return ret;
-  },
-  orgMyOrgSetOrgmode: async function (orgmode: boolean, password: string) {
-    let ret = await Fynal.post("/tnt/my/org/set/orgmode", {
+  }
+  async orgMyOrgSetOrgmode(orgmode: boolean, password: string) {
+    let ret = await this.post("/tnt/my/org/set/orgmode", {
       password: password,
       orgmode: orgmode,
     });
     return ret;
-  },
-  orgApprove: async function (account_eids: string[]) {
-    let ret = await Fynal.post("/tnt/approve", { account_eids: account_eids });
+  }
+  async orgApprove(account_eids: string[]) {
+    let ret = await this.post("/tnt/approve", { account_eids: account_eids });
     return ret;
-  },
-  orgSetEmployeeGroup: async function (eids: string[], group: string) {
-    let ret = await Fynal.post("/tnt/employee/setgroup", { eids, group });
+  }
+  async orgSetEmployeeGroup(eids: string[], group: string) {
+    let ret = await this.post("/tnt/employee/setgroup", { eids, group });
     return ret;
-  },
-  orgGetEmployees: async function (payload: Record<string, any>) {
-    let ret = await Fynal.post("/tnt/employees", payload);
+  }
+  async orgGetEmployees(payload: Record<string, any>) {
+    let ret = await this.post("/tnt/employees", payload);
     return ret;
-  },
-  myPerm: async function (what: string, op: string, instance_id = undefined) {
-    let ret = await Fynal.post("/my/sysperm", { what, instance_id, op });
+  }
+  async myPerm(what: string, op: string, instance_id = undefined) {
+    let ret = await this.post("/my/sysperm", { what, instance_id, op });
     return ret;
-  },
-  employeePerm: async function (
+  }
+  async employeePerm(
     eid: string,
     what: string,
     op: string,
     instance_id = undefined,
   ) {
-    let ret = await Fynal.post("/employee/sysperm", {
+    let ret = await this.post("/employee/sysperm", {
       eid,
       what,
       instance_id,
       op,
     });
     return ret;
-  },
+  }
   // 组织
-  getLeaderWithinOrgchart: async function (param: any) {
-    let ret = await Fynal.post("orgchart/getleader", param);
+  async getLeaderWithinOrgchart(param: any) {
+    let ret = await this.post("orgchart/getleader", param);
     return ret;
-  },
-  getStaffWithinOrgchart: async function (param: any) {
-    let ret = await Fynal.post("orgchart/getstaff", param);
+  }
+  async getStaffWithinOrgchart(param: any) {
+    let ret = await this.post("orgchart/getstaff", param);
     return ret;
-  },
-  importFromExcel: async function (param: any) {
-    Fynal.axiosOptions.headers = Fynal.axiosOptions.headers ?? {};
+  }
+  async importFromExcel(param: any) {
+    this.axiosOptions.headers = this.axiosOptions.headers ?? {};
     const headers = {
-      authorization: Fynal.axiosOptions.headers.authorization,
+      authorization: this.axiosOptions.headers.authorization,
       ...param.getHeaders(),
     };
-    Fynal.axiosOptions.headers = headers;
-    let ret = await Fynal.post("orgchart/import/excel", param);
+    this.axiosOptions.headers = headers;
+    let ret = await this.post("orgchart/import/excel", param);
     return ret;
-  },
-  listOrgchart: async function (param: any) {
-    let ret = await Fynal.post("orgchart/list", param);
+  }
+  async listOrgchart(param: any) {
+    let ret = await this.post("orgchart/list", param);
     return ret;
-  },
-  listOrgchartOU: async function (param: any) {
-    let ret = await Fynal.post("orgchart/listou", param);
+  }
+  async listOrgchartOU(param: any) {
+    let ret = await this.post("orgchart/listou", param);
     return ret;
-  },
-};
+  }
+}
 
-Fynal.axiosOptions.baseURL = Fynal.apiServer;
+class ApmClass extends Client {
+  constructor() {
+    process.env.APM_SERVER ??
+      (console.log("APM_SERVER is not set"), process.exit(1));
+    super();
+    this.axiosOptions.baseURL = process.env.APM_SERVER;
+  }
 
-export default Fynal;
+  hello() {
+    return "Hello, this is APM(Agent Package Manager)";
+  }
+
+  apmSearch(q: string, limit: number) {
+    return new Promise((resolve, reject) => {
+      this.post("/apm/agent/search", {
+        hastotal: false,
+        extrajson: {},
+        skip: 0,
+        limit: limit,
+        sortBy: {
+          updatedAt: -1,
+        },
+        q: q,
+      })
+        .then((result: string) => {
+          resolve(JSON.parse(result)); // Resolve the promise with the result
+        })
+        .catch((err) => {
+          console.error(err);
+          reject(err); // Reject the promise with the error
+        });
+    });
+  }
+}
+
+export const Fynal = new FynalClass();
+export const APM = new ApmClass();
+
+export default { Fynal, APM };
