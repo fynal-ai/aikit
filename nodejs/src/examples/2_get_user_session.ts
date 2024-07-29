@@ -1,4 +1,4 @@
-import { Fynal } from "fynal";
+import Fynal from "fynal";
 
 Fynal.login("fynal_a", "FynalAI@2024")
   .then((result: any) => {

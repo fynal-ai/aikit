@@ -1,4 +1,4 @@
-import { Fynal } from "fynal";
+import Fynal from "fynal";
 import fs from "fs";
 import { expect } from "@hapi/code";
 

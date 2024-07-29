@@ -55,7 +55,7 @@ So, to use it to run your program, you could
 ### Call Fynal in your application:
 
 ```typescript
-import { Fynal } from '@fynal/aikit';
+import Fynal from '@fynal/aikit';
 
 Fynal.runAgent("ai2nv/generate", {llm="chatgpt-4", {system: 'You are a student",
 ```

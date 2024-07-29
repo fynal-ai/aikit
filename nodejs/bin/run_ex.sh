@@ -18,6 +18,8 @@ PREFIX=$1
 # Define the folder to search in
 FOLDER="${PRJ_HOME}/build/examples"
 
+rm -f "${FOLDER:?}/*"
+
 # Find files that match the criteria
 FILES=$(find "$FOLDER" -type f -name "${PREFIX}_*.js")
 
