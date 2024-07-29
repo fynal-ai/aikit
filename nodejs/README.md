@@ -59,3 +59,49 @@ import Fynal from '@fynal/aikit';
 
 Fynal.runAgent("ai2nv/generate", {llm="chatgpt-4", {system: 'You are a student",
 ```
+[[[PIC here]]
+
+Before using this development kit, you need to install the Fynal-AI services. If not, please install them first.
+
+Install AIKit
+
+```sh
+npm install @fynal/aikit
+```
+
+In your application, you are going to import akit first like:
+
+```
+import Fynal from @fynal/aikit
+```
+
+Check what AI agents do you have with running 
+
+```
+Fynal.agentSearch("name_filter") 
+```
+
+Run a AI agent named  "fynal-ai/flood_control"
+
+```
+const runid = Fynal.agentRun("fynal-ai/flood_control", {input_json})
+```
+
+Check the result of of an agent
+
+```
+const result = Fynal.agentCheckResult(runid)
+```
+
+To get worklist for a person:
+
+```
+const wl = Fynal.getWorklist()
+```
+
+See all examples:
+
+.... example folder ...
+
+
+See full documentation of fynal/aikit
