@@ -5,7 +5,7 @@ import { expect } from "@hapi/code";
 process.env.AIKIT_HOME ??
   (console.log("AIKIT_HOME is not set"), process.exit(1));
 
-Fynal.agentSearch("a", 32)
+Fynal.agentSearch({ limit: 1 })
   .then(async (result: any) => {
     if (result.error) {
       console.log(result);
