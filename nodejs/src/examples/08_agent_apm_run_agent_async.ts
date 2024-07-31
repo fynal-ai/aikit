@@ -5,9 +5,12 @@ import { expect } from "@hapi/code";
 process.env.AIKIT_HOME ??
   (console.log("AIKIT_HOME is not set"), process.exit(1));
 
-Fynal.agentRun("fynal-ai/draw_image", {
-  style: "水墨画",
-  prompt: "君不见，黄河之水天上来，奔流到海不复回",
+Fynal.agentRun({
+  name: "fynal-ai/draw_image",
+  input: {
+    style: "水墨画",
+    prompt: "君不见，黄河之水天上来，奔流到海不复回",
+  },
 })
   .then(async (result: any) => {
     if (result.error) {
@@ -20,9 +23,15 @@ Fynal.agentRun("fynal-ai/draw_image", {
         console.log(`You could get result from runId ${result.runId} later`);
         for (let i = 0; i < 100; i++) {
           await new Promise((r) => setTimeout(r, 1000));
-          result = await Fynal.agentCheckResult(result.runId);
-          if (result.status?.done) {
-            console.log(result.output);
+          result = await Fynal.agentCheckResult({
+            runId: result.runId,
+          });
+          console.log(i, result);
+          if (["ST_DONE", "ST_FAIL"].includes(result.status)) {
+            await Fynal.agentCleanResult({ runId: result.runId });
+            console.log("======= Next Error is on purpose ======");
+            result = await Fynal.agentCheckResult({ runId: result.runId });
+            console.log(i, result);
             break;
           }
         }

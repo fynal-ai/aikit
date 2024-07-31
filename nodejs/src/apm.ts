@@ -1,59 +1,39 @@
 import Client from "./client";
+import type { agentRunArgType, agentGetResultArgType } from "./apm.d.js";
 
 export default class ApmClass extends Client {
-  access_id: string;
-  access_key: string;
-  authstatus: boolean;
+  apm_access_id: string;
+  apm_access_key: string;
+  apm_auth_status: boolean;
+  apm_auth_token: string;
 
-  constructor(access_id: string, access_key: string) {
+  constructor(apm_access_id: string, apm_access_key: string) {
     process.env.APM_SERVER ??
       (console.log("APM_SERVER is not set"), process.exit(1));
     super();
     this.axiosOptions.baseURL = process.env.APM_SERVER;
-    this.access_id = access_id;
-    this.access_key = access_key;
-    this.authstatus = false;
+    this.apm_access_id = apm_access_id;
+    this.apm_access_key = apm_access_key;
+    this.apm_auth_status = false;
+    this.apm_auth_token = "";
 
-    this.auth(this.access_id, this.access_key).then(() => {});
+    this.apmAuth().then(() => {});
   }
 
-  async auth(access_id: any, access_key: string) {
-    let theAccessId;
-    let theAccessKey;
-    if (typeof access_id === "string") {
-      theAccessId = access_id;
-      theAccessKey = access_key;
-      if (!theAccessKey) {
-        throw new Error("access_key should not be nullish");
-      }
-    } else if (
-      access_id.hasOwnProperty("access_id") &&
-      (access_id.hasOwnProperty("access_key") ||
-        access_id.hasOwnProperty("access_key"))
-    ) {
-      theAccessId = access_id.access_id;
-
-      if (access_id.hasOwnProperty("access_key"))
-        theAccessKey = access_id.access_key;
-      else if (access_id.hasOwnProperty("access_key"))
-        theAccessKey = access_id.access_key;
-      else {
-        throw new Error("access_key should not be nullish");
-      }
-    }
-
+  async apmAuth() {
     this.setHeader("Content-type", "application/json");
     const payload = {
-      access_id: theAccessId,
-      access_key: theAccessKey,
+      access_id: this.apm_access_id,
+      access_key: this.apm_access_key,
     };
     let response = await this.post("/apm/auth", payload);
-    if (response.access_token) {
-      this.authstatus = true;
-      this.setHeader("authorization", response.access_token);
-      console.log("APM auth success");
-    } else {
+    if (response?.error) {
       console.error("Failed: /apm/auth", payload);
+    } else {
+      this.apm_auth_status = true;
+      this.apm_auth_token = response;
+      this.setHeader("authorization", response);
+      console.log("APM auth success");
     }
     return response;
   }
@@ -62,9 +42,9 @@ export default class ApmClass extends Client {
     await new Promise((resolve) => setTimeout(resolve, miliseconds));
   }
 
-  async waitAuth(times: number) {
+  async waitApmAuth(times: number) {
     for (let i = 0; i < times; i++) {
-      if (this.authstatus) break;
+      if (this.apm_auth_status) break;
       await this.sleep(500);
     }
   }
@@ -88,7 +68,7 @@ export default class ApmClass extends Client {
       q: "",
     },
   ) {
-    await this.waitAuth(10);
+    await this.waitApmAuth(10);
     let result = await this.post("/apm/agent/search", filter);
 
     if (typeof result === "object" && result.error) {
@@ -98,10 +78,10 @@ export default class ApmClass extends Client {
   }
 
   async agentDetail(name: string, version: string) {
-    await this.waitAuth(10);
-    let filter: Record<string, any> = { name };
-    if (version) filter.version = version;
-    let result = await this.post("/apm/agent/detail", filter);
+    await this.waitApmAuth(10);
+    let payload: Record<string, any> = { name };
+    if (version) payload.version = version;
+    let result = await this.post("/apm/agent/detail", payload);
 
     if (typeof result === "object" && result.error) {
       console.log(result);
@@ -109,17 +89,33 @@ export default class ApmClass extends Client {
     } else return result; // Resolve the promise with the result
   }
 
-  async agentRun(
-    name: string,
-    input: Record<string, any>,
-    runId: string,
-    version: string,
-  ) {
-    await this.waitAuth(10);
-    let filter: Record<string, any> = { name, input };
-    if (runId) filter.runId = runId;
-    if (version) filter.version = version;
-    let result = await this.post("/apm/agentservice/run", filter);
+  async agentAuth(name: string, arg1: string, arg2: string) {
+    await this.waitApmAuth(10);
+    let payload: Record<string, any> = {
+      name,
+      arg1,
+      arg2,
+    };
+    let result = await this.post("/apm/agentservice/auth", payload);
+    console.log("AgentAuth: ", result);
+
+    if (result?.error) {
+      console.log(payload);
+      console.log(result);
+      throw new Error(result.error);
+    } else return result; // Resolve the promise with the result
+  }
+
+  async agentRun(arg: agentRunArgType) {
+    await this.waitApmAuth(10);
+    let payload: Record<string, any> = {
+      name: arg.name,
+      input: arg.input,
+      token: arg.token ?? this.apm_auth_token,
+    };
+    if (arg.runId) payload.runId = arg.runId;
+    if (arg.version) payload.version = arg.version;
+    let result = await this.post("/apm/agentservice/run", payload);
 
     if (typeof result === "object" && result.error) {
       console.log(result);
@@ -127,10 +123,31 @@ export default class ApmClass extends Client {
     } else return result; // Resolve the promise with the result
   }
 
-  async agentCheckResult(runId: string, deleteAfter: boolean = false) {
-    await this.waitAuth(10);
-    let filter: Record<string, any> = { runId, deleteAfter };
-    let result = await this.post("/apm/agentservice/result/get", filter);
+  async agentCheckResult(arg: agentGetResultArgType) {
+    await this.waitApmAuth(10);
+    if (arg.deleteAfter === undefined) {
+      arg.deleteAfter = false;
+    }
+    let payload: Record<string, any> = {
+      runId: arg.runId,
+      deleteAfter: arg.deleteAfter,
+      token: arg.token ?? this.apm_auth_token,
+    };
+    let result = await this.post("/apm/agentservice/result/get", payload);
+
+    if (typeof result === "object" && result.error) {
+      console.log(result);
+      throw new Error(result.error);
+    } else return result; // Resolve the promise with the result
+  }
+
+  async agentCleanResult(arg: agentGetResultArgType) {
+    await this.waitApmAuth(10);
+    let payload: Record<string, any> = {
+      runId: arg.runId,
+      token: arg.token ?? this.apm_auth_token,
+    };
+    let result = await this.post("/apm/agentservice/result/clean", payload);
 
     if (typeof result === "object" && result.error) {
       console.log(result);
