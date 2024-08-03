@@ -6,7 +6,7 @@ process.env.AIKIT_HOME ??
   (console.log("AIKIT_HOME is not set"), process.exit(1));
 
 Fynal.agentRun({
-  name: "fynal-ai/draw_image",
+  name: "fynal-ai/categorizor",
   input: {
     style: "水墨画",
     prompt: "君不见，黄河之水天上来，奔流到海不复回",

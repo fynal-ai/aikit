@@ -6,7 +6,7 @@ process.env.AIKIT_HOME ??
   (console.log("AIKIT_HOME is not set"), process.exit(1));
 
 Fynal.agentRun({
-  name: "fynal-ai/flood_control",
+  name: "lucas/test1",
   input: {
     prompt: "潘家塘最大降雨量多少？",
     start_time: 1715961600,
@@ -17,6 +17,7 @@ Fynal.agentRun({
     if (result.error) {
       console.log(result);
     } else {
+      console.log(result);
       if (result.runMode === "sync") {
         console.log(result.output);
       } else {

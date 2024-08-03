@@ -35,4 +35,5 @@ Fynal["login"] = AiWork.login;
 Fynal.APM = APM;
 Fynal.AiWork = AiWork;
 
+export * from "./types";
 export default Fynal;

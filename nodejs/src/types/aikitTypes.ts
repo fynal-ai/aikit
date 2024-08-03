@@ -1,5 +1,3 @@
-//User 1: agent developer
-//User 2: agent store administrator
 interface agentDefItf {
   author: string;
   name: string;
@@ -50,7 +48,7 @@ interface remoteRunAgentType extends agentDefItf {
   };
 }
 
-interface agentRunArgType {
+export interface agentRunArgType {
   name: string;
   version?: string;
   runId?: string;
@@ -58,10 +56,8 @@ interface agentRunArgType {
   token?: string;
 }
 
-interface agentGetResultArgType {
+export interface agentGetResultArgType {
   runId: string;
   deleteAfter: boolean;
   token: string;
 }
-
-export { agentRunArgType, agentGetResultArgType };

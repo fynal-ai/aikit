@@ -1,5 +1,5 @@
 import Client from "./client";
-import type { agentRunArgType, agentGetResultArgType } from "./apm.d.js";
+import { agentGetResultArgType, agentRunArgType } from "./types";
 
 export default class ApmClass extends Client {
   apm_access_id: string;
@@ -38,8 +38,8 @@ export default class ApmClass extends Client {
     return response;
   }
 
-  async sleep(miliseconds: number) {
-    await new Promise((resolve) => setTimeout(resolve, miliseconds));
+  async sleep(milliseconds: number) {
+    await new Promise((resolve) => setTimeout(resolve, milliseconds));
   }
 
   async waitApmAuth(times: number) {
@@ -77,10 +77,8 @@ export default class ApmClass extends Client {
     } else return result; // Resolve the promise with the result
   }
 
-  async agentDetail(name: string, version: string) {
+  async agentDetail(payload: { name: string; version: string }) {
     await this.waitApmAuth(10);
-    let payload: Record<string, any> = { name };
-    if (version) payload.version = version;
     let result = await this.post("/apm/agent/detail", payload);
 
     if (typeof result === "object" && result.error) {
@@ -111,7 +109,7 @@ export default class ApmClass extends Client {
     let payload: Record<string, any> = {
       name: arg.name,
       input: arg.input,
-      token: arg.token ?? this.apm_auth_token,
+      access_token: arg.token ?? this.apm_auth_token,
     };
     if (arg.runId) payload.runId = arg.runId;
     if (arg.version) payload.version = arg.version;
@@ -131,7 +129,7 @@ export default class ApmClass extends Client {
     let payload: Record<string, any> = {
       runId: arg.runId,
       deleteAfter: arg.deleteAfter,
-      token: arg.token ?? this.apm_auth_token,
+      access_token: arg.token ?? this.apm_auth_token,
     };
     let result = await this.post("/apm/agentservice/result/get", payload);
 
@@ -145,7 +143,7 @@ export default class ApmClass extends Client {
     await this.waitApmAuth(10);
     let payload: Record<string, any> = {
       runId: arg.runId,
-      token: arg.token ?? this.apm_auth_token,
+      access_token: arg.token ?? this.apm_auth_token,
     };
     let result = await this.post("/apm/agentservice/result/clean", payload);
 

@@ -1,16 +1,24 @@
 {
-  "name": "@fynal/aikit",
-  "version": "1.0.0",
-  "description": "Fynal Development Kit",
-  "main": "build/index.js",
-  "types": "build/index.d.ts",
+  "name": "@fynal-ai/aikit",
+  "version": "1.16.2",
+  "description": "Fynal-ai Development Kit",
+  "main": "dist/index.js",
+  "types": "types/index.d.ts",
+  "files": [
+    "dist",
+    "types"
+  ],
   "scripts": {
-    "build": "tsc; mkdir -p node_modules/fynal; find build -maxdepth 1 -type f -exec cp {} node_modules/fynal/ \\; ; echo \"declare module 'fynal';\" | cat - build/index.d.ts > temp && mv temp node_modules/fynal/index.d.ts; tsc -p ./tsconfig_examples.json",
-    "prepublishOnly": "pnpm version minor",
+    "build": "tsc",
+    "buildlocal": "tsc; mkdir -p node_modules/fynal; find dist -maxdepth 1 -type f -exec cp {} node_modules/fynal/ \\; ; echo \"declare module 'fynal';\" | cat - dist/index.d.ts > temp && mv temp node_modules/fynal/index.d.ts; tsc -p ./tsconfig_examples.json",
     "publish": "npm publish --registry=https://registry.npmjs.org --access public"
   },
-  "keywords": [],
-  "author": "liukehong@gmail.com",
+  "keywords": [
+    "Agent",
+    "Agentic Workflow",
+    "AI"
+  ],
+  "author": "liukehong@ai2nv.com",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^20.14.12",

@@ -7,13 +7,13 @@
 > For npm, run
 
 ```sh
-npm instlal @fynal/aikit --save
+npm instlal @fynal-ai/aikit --save
 ```
 
 > For pnpm, run
 
 ```sh
-pnpm add @fynal/aikit --save
+pnpm add @fynal-ai/aikit --save
 ```
 
 ### Setup CA certificate for your local Node.JS (optional)
@@ -65,7 +65,7 @@ Here are the main steps to use Fynal AiKit in your application:
 ### 1. Install AiKit package
 
 ```sh
-npm install @fynal/aikit
+npm install @fynal-ai/aikit
 ```
 
 ### 2. Import AiKit
@@ -73,7 +73,7 @@ npm install @fynal/aikit
 In your application, you are going to import AiKit first like:
 
 ```
-import Fynal from @fynal/aikit
+import Fynal from @fynal-ai/aikit
 ```
 
 ### 3. Search available AI agents
