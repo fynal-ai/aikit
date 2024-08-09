@@ -1,5 +1,5 @@
 import Client from "./client";
-import { agentGetResultArgType, agentRunArgType } from "./types";
+import { agentGetResultArgType, agentRunArgType, agentResultConsumerIamAliveArgType } from "./types";
 export default class ApmClass extends Client {
     apm_access_id: string;
     apm_access_key: string;
@@ -23,6 +23,7 @@ export default class ApmClass extends Client {
     }): Promise<any>;
     agentAuth(name: string, arg1: string, arg2: string): Promise<any>;
     agentRun(arg: agentRunArgType): Promise<any>;
+    agentResultConsumerIamAlive(arg: agentResultConsumerIamAliveArgType): Promise<void>;
     agentCheckResult(arg: agentGetResultArgType): Promise<any>;
     agentCleanResult(arg: agentGetResultArgType): Promise<any>;
 }

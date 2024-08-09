@@ -1,5 +1,9 @@
 import Client from "./client";
-import { agentGetResultArgType, agentRunArgType } from "./types";
+import {
+  agentGetResultArgType,
+  agentRunArgType,
+  agentResultConsumerIamAliveArgType,
+} from "./types";
 
 export default class ApmClass extends Client {
   apm_access_id: string;
@@ -110,6 +114,7 @@ export default class ApmClass extends Client {
       name: arg.name,
       input: arg.input,
       access_token: arg.token ?? this.apm_auth_token,
+      option: arg.option,
     };
     if (arg.runId) payload.runId = arg.runId;
     if (arg.version) payload.version = arg.version;
@@ -119,6 +124,13 @@ export default class ApmClass extends Client {
       console.log(result);
       throw new Error(result.error);
     } else return result; // Resolve the promise with the result
+  }
+
+  async agentResultConsumerIamAlive(arg: agentResultConsumerIamAliveArgType) {
+    this.post("/apm/agentResultConsumer/iamalive", {
+      access_token: arg.token ?? this.apm_auth_token,
+      option: arg.option,
+    });
   }
 
   async agentCheckResult(arg: agentGetResultArgType) {

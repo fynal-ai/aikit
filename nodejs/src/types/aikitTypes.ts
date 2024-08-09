@@ -47,12 +47,21 @@ interface remoteRunAgentType extends agentDefItf {
     cleanresult: string;
   };
 }
+interface agentRunOptionType {
+  callback: string;
+}
 
 export interface agentRunArgType {
   name: string;
   version?: string;
   runId?: string;
   input: Record<string, any>;
+  token?: string;
+  option: agentRunOptionType;
+}
+
+export interface agentResultConsumerIamAliveArgType {
+  option: agentRunOptionType;
   token?: string;
 }
 

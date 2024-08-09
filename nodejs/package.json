@@ -1,6 +1,6 @@
 {
   "name": "@fynal-ai/aikit",
-  "version": "1.16.2",
+  "version": "2.0.2",
   "description": "Fynal-ai Development Kit",
   "main": "dist/index.js",
   "types": "types/index.d.ts",
