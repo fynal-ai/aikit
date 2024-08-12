@@ -16,7 +16,7 @@ pnpm run build
 PREFIX=$1
 
 # Define the folder to search in
-FOLDER="${PRJ_HOME}/build/examples"
+FOLDER="${PRJ_HOME}/dist/examples"
 
 rm -f "${FOLDER:?}/*"
 

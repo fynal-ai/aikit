@@ -30,14 +30,24 @@ export default class ApmClass extends Client {
       access_id: this.apm_access_id,
       access_key: this.apm_access_key,
     };
+    console.log("AiKIT: APM auth start", payload);
     let response = await this.post("/apm/auth", payload);
+    let authOK = false;
     if (response?.error) {
-      console.error("Failed: /apm/auth", payload);
+      console.error("AiKIT: APM auth failed: /apm/auth", payload);
+    }else if(JSON.stringify(response).includes("error")) {
+      console.error("AiKIT: APM auth failed: /apm/auth", payload);
     } else {
+      authOK=true;
       this.apm_auth_status = true;
       this.apm_auth_token = response;
       this.setHeader("authorization", response);
-      console.log("APM auth success");
+      console.log(`AiKIT: APM auth success ${typeof response} ${JSON.stringify(response)} ${response.error}`);
+    }
+    if(!authOK) {
+      setTimeout(() => {
+        this.apmAuth();
+      }, 1000);
     }
     return response;
   }
